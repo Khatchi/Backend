@@ -14,6 +14,10 @@ class User(AbstractUser):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    @property
+    def id(self):
+        return self.user_id
+
     def __str__(self):
         """Return a string representation of the user."""
         return f"User: {self.username} (ID: {self.user_id})" if self.username else "User: Anonymous"
