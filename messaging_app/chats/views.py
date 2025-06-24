@@ -58,6 +58,7 @@ class UserViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         instance.delete()
+
 class ConversationViewSet(viewsets.ModelViewSet):
     """
     ViewSet for listing, retrieving, and creating conversations.
@@ -79,6 +80,28 @@ class ConversationViewSet(viewsets.ModelViewSet):
         participant_ids = serializer.validated_data.get('participant_ids', [])
         if self.request.user.user_id not in participant_ids:
             serializer.instance.participants.add(self.request.user)
+    
+    ## Custom () => REVIEW LATER
+
+    def perform_update(self, serializer):
+        """
+        Update a conversation instance, ensuring the authenticated user remains a participant.
+        """
+        participant_ids = serializer.validated_data.get('participant_ids', None)
+        if participant_ids is not None:
+            # Ensure the authenticated user cannot remove themselves from the conversation
+            if self.request.user.user_id not in participant_ids:
+                serializer.validated_data['participant_ids'].append(self.request.user.user_id)
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        """
+        Delete a conversation, ensuring only participants can delete it.
+        """
+        # Verify the user is a participant
+        if self.request.user not in instance.participants.all():
+            raise PermissionError("You are not a participant in this conversation.")
+        instance.delete()
 
 
 class MessageViewSet(viewsets.ModelViewSet):
@@ -107,3 +130,27 @@ class MessageViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         serializer.save(sender=self.request.user)
+
+    ## Custom () => REVIEW LATER
+
+    def perform_update(self, serializer):
+        """
+        Update a message, ensuring only the sender can modify it and the conversation is valid.
+        """
+        message = self.get_object()  # Get the message instance being updated
+        if message.sender != self.request.user:
+            raise PermissionDenied("You can only update your own messages.")
+        if not message.conversation.participants.filter(user_id=self.request.user.user_id).exists():
+            raise PermissionDenied("You are no longer a participant in this conversation.")
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        """
+        Delete a message, ensuring only the sender can delete it and the conversation is valid.
+        """
+        if instance.sender != self.request.user:
+            raise PermissionError("You can only delete your own messages.")
+        if not instance.conversation.participants.filter(user_id=self.request.user.user_id).exists():
+            raise PermissionError("You are no longer a participant in this conversation.")
+        instance.delete()
+

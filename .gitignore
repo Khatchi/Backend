@@ -1,0 +1,9 @@
+venv/
+*migrations*
+__pycache__/
+
+#.env
+.env
+
+# add database files
+*.sqlite3

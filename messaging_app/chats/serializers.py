@@ -68,7 +68,7 @@ class ConversationSerializer(serializers.ModelSerializer):
             'created_at',
             'participant_count'
         ]
-        read_only_fields = ['conversation_id', 'participants', 'messages', 'created_at']
+        read_only_fields = ['conversation_id', 'participants', 'messages', 'created_at', 'participant_ids']
 
     def get_participant_count(self, obj):
         return obj.participants.count()
