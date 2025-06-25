@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from chats.models import Conversation, Message, User
 from chats.serializers import ConversationSerializer, MessageSerializer, UserSerializer
 from rest_framework.exceptions import PermissionDenied
+from chats.permissions import IsParticipantOfConversation
 
 # Create your views here.
 
@@ -57,7 +58,10 @@ class ConversationViewSet(viewsets.ModelViewSet):
     ViewSet for listing, retrieving, and creating conversations.
     """
     serializer_class = ConversationSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [
+        IsAuthenticated,
+        # IsParticipantOfConversation
+    ]
 
     def get_queryset(self):
         """
@@ -93,7 +97,9 @@ class ConversationViewSet(viewsets.ModelViewSet):
         """
         # Verify the user is a participant
         if self.request.user not in instance.participants.all():
-            raise PermissionError("You are not a participant in this conversation.")
+            raise PermissionDenied(
+                "You are not a participant in this conversation."
+            )
         instance.delete()
 
 
@@ -102,7 +108,10 @@ class MessageViewSet(viewsets.ModelViewSet):
     ViewSet for listing, retrieving, and creating messages.
     """
     serializer_class = MessageSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [
+        IsAuthenticated,
+        # IsParticipantOfConversation
+    ]
 
     def get_queryset(self):
         """
@@ -118,9 +127,8 @@ class MessageViewSet(viewsets.ModelViewSet):
         """
         conversation = serializer.validated_data['conversation']
         if not conversation.participants.filter(user_id=self.request.user.user_id).exists():
-            return Response(
-                {"detail": "You are not a participant in this conversation."},
-                status=status.HTTP_403_FORBIDDEN
+            raise PermissionDenied(
+                "You are not a participant in this conversation."
             )
         serializer.save(sender=self.request.user)
 
@@ -132,9 +140,15 @@ class MessageViewSet(viewsets.ModelViewSet):
         """
         message = self.get_object()
         if message.sender != self.request.user:
-            raise PermissionDenied("You can only update your own messages.")
-        if not message.conversation.participants.filter(user_id=self.request.user.user_id).exists():
-            raise PermissionDenied("You are no longer a participant in this conversation.")
+            raise PermissionDenied(
+                "You can only update your own messages."
+        )
+        if not message.conversation.participants.filter(
+            user_id=self.request.user.user_id
+            ).exists():
+            raise PermissionDenied(
+                "You are no longer a participant in this conversation."
+            )
         serializer.save()
 
     def perform_destroy(self, instance):
@@ -142,8 +156,12 @@ class MessageViewSet(viewsets.ModelViewSet):
         Delete a message, ensuring only the sender can delete it and the conversation is valid.
         """
         if instance.sender != self.request.user:
-            raise PermissionError("You can only delete your own messages.")
+            raise PermissionDenied(
+                "You can only delete your own messages."
+            )
         if not instance.conversation.participants.filter(user_id=self.request.user.user_id).exists():
-            raise PermissionError("You are no longer a participant in this conversation.")
+            raise PermissionDenied(
+                "You are no longer a participant in this conversation."
+            )
         instance.delete()
 
