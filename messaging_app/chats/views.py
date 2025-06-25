@@ -137,7 +137,7 @@ class MessageViewSet(viewsets.ModelViewSet):
         """
         Update a message, ensuring only the sender can modify it and the conversation is valid.
         """
-        message = self.get_object()  # Get the message instance being updated
+        message = self.get_object()
         if message.sender != self.request.user:
             raise PermissionDenied("You can only update your own messages.")
         if not message.conversation.participants.filter(user_id=self.request.user.user_id).exists():

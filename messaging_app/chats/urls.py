@@ -1,10 +1,11 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ConversationViewSet, MessageViewSet, UserViewSet
+from chats.views import ConversationViewSet, MessageViewSet, UserViewSet
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
+from chats.auth import CustomTokenObtainPairView
 
 # Creates a router and register our endpoints
 router = DefaultRouter()
@@ -21,6 +22,6 @@ urlpatterns = [
     path('api-auth/', include('rest_framework.urls')),
 
     # JWT Auth
-    path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
