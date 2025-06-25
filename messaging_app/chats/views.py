@@ -60,7 +60,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
     serializer_class = ConversationSerializer
     permission_classes = [
         IsAuthenticated,
-        # IsParticipantOfConversation
+        IsParticipantOfConversation
     ]
 
     def get_queryset(self):
@@ -110,7 +110,7 @@ class MessageViewSet(viewsets.ModelViewSet):
     serializer_class = MessageSerializer
     permission_classes = [
         IsAuthenticated,
-        # IsParticipantOfConversation
+        IsParticipantOfConversation
     ]
 
     def get_queryset(self):
