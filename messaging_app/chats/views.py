@@ -3,8 +3,9 @@ from rest_framework import viewsets, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from .models import Conversation, Message, User
-from .serializers import ConversationSerializer, MessageSerializer, UserSerializer
+from chats.models import Conversation, Message, User
+from chats.serializers import ConversationSerializer, MessageSerializer, UserSerializer
+from rest_framework.exceptions import PermissionDenied
 
 # Create your views here.
 
@@ -31,21 +32,16 @@ class UserViewSet(viewsets.ModelViewSet):
         Ensure only admins can create users.
         """
         if not self.request.user.is_staff:
-            return Response(
-                {"detail": "Only admins can create users."},
-                status=status.HTTP_403_FORBIDDEN
-            )
+            raise PermissionDenied("Only admins can create users.")
         serializer.save()
 
     def perform_update(self, serializer):
         """
         Allow users to update their own profile; admins can update any user.
         """
-        if not self.request.user.is_staff and str(self.request.user.user_id) != str(self.kwargs.get('pk')):
-            return Response(
-                {"detail": "You can only update your own profile."},
-                status=status.HTTP_403_FORBIDDEN
-            )
+        if not self.request.user.is_staff and \
+            str(self.request.user.user_id) != str(self.kwargs.get('pk')):
+            raise PermissionDenied("You can only update your own profile.")
         serializer.save()
 
     def perform_destroy(self, instance):
@@ -53,10 +49,7 @@ class UserViewSet(viewsets.ModelViewSet):
         Ensure only admins can delete users.
         """
         if not self.request.user.is_staff:
-            return Response(
-                {"detail": "Only admins can delete users."},
-                status=status.HTTP_403_FORBIDDEN
-            )
+            raise PermissionDenied("Only admins can delete users.")
         instance.delete()
 
 class ConversationViewSet(viewsets.ModelViewSet):

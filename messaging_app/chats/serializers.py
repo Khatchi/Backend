@@ -1,9 +1,10 @@
 from rest_framework import serializers
-from .models import User, Conversation, Message
+from chats.models import User, Conversation, Message
 
 
 class UserSerializer(serializers.ModelSerializer):
     """Serializer for the User model."""
+    password = serializers.CharField(write_only=True, min_length=8)
     class Meta:
         model = User
         fields = [
@@ -12,9 +13,32 @@ class UserSerializer(serializers.ModelSerializer):
             'email',
             'first_name',
             'last_name',
-            'phone_number'
+            'phone_number',
+            'password',
         ]
         read_only_fields = ['user_id', 'created_at', 'updated_at']
+        extra_kwargs = {
+            'password': {'write_only': True} 
+        }
+
+    # methods to handle password hashing  
+    def create(self, validated_data):
+        """Create user with hashed password"""
+        return User.objects.create_user(**validated_data)
+    
+    def update(self, instance, validated_data):
+        """Update user and hash password if provided"""
+        password = validated_data.pop('password', None)
+        
+        # Update other fields
+        instance = super().update(instance, validated_data)
+        
+        # Hash and set password if provided
+        if password:
+            instance.set_password(password)
+            instance.save()
+        
+        return instance
 
 
 class MessageSerializer(serializers.ModelSerializer):
